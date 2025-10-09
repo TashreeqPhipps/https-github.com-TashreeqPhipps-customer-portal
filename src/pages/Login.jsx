@@ -1,17 +1,47 @@
-// src/pages/Login.jsx
 import { useState } from "react";
 
 export default function Login() {
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({ accountNumber: "", password: "" });
+
+  const accountRegex = /^\d{10}$/;
+  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/;
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Login submitted:", form);
-    // 🔐 TODO: Add authentication logic here later
+
+    // ✅ RegEx validation
+    if (!accountRegex.test(form.accountNumber)) {
+      alert("Invalid account number. Must be exactly 10 digits.");
+      return;
+    }
+    if (!passwordRegex.test(form.password)) {
+      alert("Invalid password. Must be at least 8 characters with letters and numbers.");
+      return;
+    }
+
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert("Login successful!");
+        console.log("JWT token:", data.token);
+        // TODO: Store token and redirect to dashboard
+      } else {
+        alert(data.error || "Login failed");
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      alert("Something went wrong");
+    }
   };
 
   return (
@@ -20,13 +50,13 @@ export default function Login() {
         <h2 style={styles.title}>Login</h2>
         <form onSubmit={handleSubmit}>
           <div style={styles.inputGroup}>
-            <label>Email</label>
+            <label>Account Number</label>
             <input
-              type="email"
-              name="email"
-              value={form.email}
+              type="text"
+              name="accountNumber"
+              value={form.accountNumber}
               onChange={handleChange}
-              placeholder="you@example.com"
+              placeholder="Enter your 10-digit account number"
               style={styles.input}
               required
             />
@@ -59,7 +89,7 @@ const styles = {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    minHeight: "calc(100vh - 80px)", // ✅ makes page fill the entire screen (minus navbar)
+    minHeight: "calc(100vh - 80px)",
     width: "100%",
     background: "#1e1e1e",
     padding: "24px",

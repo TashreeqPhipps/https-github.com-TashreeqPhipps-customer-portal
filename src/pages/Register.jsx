@@ -1,16 +1,63 @@
 import { useState } from "react";
 
 export default function Register() {
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({
+    fullName: "",
+    idNumber: "",
+    accountNumber: "",
+    password: "",
+  });
+
+  // RegEx patterns
+  const nameRegex = /^[A-Za-z\s]{2,}$/;
+  const idRegex = /^\d{13}$/;
+  const accountRegex = /^\d{10}$/;
+  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/;
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Register submitted:", form);
-    // You can add real registration here later
+
+    // ✅ Validate inputs
+    if (!nameRegex.test(form.fullName)) {
+      alert("Invalid name. Use letters and spaces only.");
+      return;
+    }
+    if (!idRegex.test(form.idNumber)) {
+      alert("Invalid ID number. Must be exactly 13 digits.");
+      return;
+    }
+    if (!accountRegex.test(form.accountNumber)) {
+      alert("Invalid account number. Must be exactly 10 digits.");
+      return;
+    }
+    if (!passwordRegex.test(form.password)) {
+      alert("Weak password. Must be at least 8 characters with letters and numbers.");
+      return;
+    }
+
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert("Registration successful!");
+        console.log("User registered:", data);
+        // TODO: Redirect to login or dashboard
+      } else {
+        alert(data.error || "Registration failed");
+      }
+    } catch (err) {
+      console.error("Registration error:", err);
+      alert("Something went wrong");
+    }
   };
 
   return (
@@ -19,26 +66,41 @@ export default function Register() {
         <h2 style={styles.title}>Create Account</h2>
         <form onSubmit={handleSubmit}>
           <div style={styles.inputGroup}>
-            <label>Name</label>
+            <label>Full Name</label>
             <input
               type="text"
-              name="name"
-              value={form.name}
+              name="fullName"
+              value={form.fullName}
               onChange={handleChange}
               placeholder="Your full name"
               style={styles.input}
+              required
             />
           </div>
 
           <div style={styles.inputGroup}>
-            <label>Email</label>
+            <label>ID Number</label>
             <input
-              type="email"
-              name="email"
-              value={form.email}
+              type="text"
+              name="idNumber"
+              value={form.idNumber}
               onChange={handleChange}
-              placeholder="you@example.com"
+              placeholder="13-digit SA ID number"
               style={styles.input}
+              required
+            />
+          </div>
+
+          <div style={styles.inputGroup}>
+            <label>Account Number</label>
+            <input
+              type="text"
+              name="accountNumber"
+              value={form.accountNumber}
+              onChange={handleChange}
+              placeholder="10-digit account number"
+              style={styles.input}
+              required
             />
           </div>
 
@@ -51,6 +113,7 @@ export default function Register() {
               onChange={handleChange}
               placeholder="Create a password"
               style={styles.input}
+              required
             />
           </div>
 
@@ -68,11 +131,11 @@ const styles = {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    minHeight: "calc(100vh - 80px)", // accounts for navbar height
+    minHeight: "calc(100vh - 80px)",
     background: "#1e1e1e",
     padding: "24px",
-    width: "100%",              // ✅ full width
-    boxSizing: "border-box",    // ✅ ensures padding doesn’t shrink the container
+    width: "100%",
+    boxSizing: "border-box",
   },
   card: {
     background: "#2b2b2b",

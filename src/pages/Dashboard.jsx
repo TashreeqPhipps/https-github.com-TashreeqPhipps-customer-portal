@@ -70,3 +70,64 @@ export default function Dashboard() {
     </div>
   );
 }
+
+const styles = {
+  container: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    minHeight: "calc(100vh - 80px)",
+    width: "100%",
+    background: "#1e1e1e",
+    padding: "24px",
+    boxSizing: "border-box",
+  },
+  card: {
+    background: "#2b2b2b",
+    padding: "30px",
+    borderRadius: "12px",
+    width: "100%",
+    maxWidth: "500px",
+    color: "white",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+  },
+  title: {
+    marginBottom: "20px",
+    textAlign: "center",
+    fontSize: "1.5rem",
+    fontWeight: "bold",
+  },
+  loading: {
+    textAlign: "center",
+    fontSize: "1rem",
+    color: "#aaa",
+  },
+  details: {
+    marginBottom: "20px",
+  },
+  detailRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    padding: "10px 0",
+    borderBottom: "1px solid #444",
+  },
+  label: {
+    color: "#aaa",
+  },
+  value: {
+    fontWeight: "bold",
+    color: "#fff",
+  },
+  logoutButton: {
+    width: "100%",
+    padding: "12px",
+    borderRadius: "6px",
+    background: "#ff4a4a",
+    color: "white",
+    border: "none",
+    cursor: "pointer",
+    fontWeight: "bold",
+    marginTop: "10px",
+    fontSize: "1rem",
+  },
+};

@@ -1,7 +1,12 @@
+// src/pages/Login.jsx
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
   const [form, setForm] = useState({ accountNumber: "", password: "" });
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const navigate = useNavigate();
 
   const accountRegex = /^\d{10}$/;
   const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/;
@@ -12,35 +17,57 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMsg("");
 
     // ✅ RegEx validation
     if (!accountRegex.test(form.accountNumber)) {
-      alert("Invalid account number. Must be exactly 10 digits.");
+      setErrorMsg("Invalid account number. Must be exactly 10 digits.");
       return;
     }
     if (!passwordRegex.test(form.password)) {
-      alert("Invalid password. Must be at least 8 characters with letters and numbers.");
+      setErrorMsg("Invalid password. Must be at least 8 characters with letters and numbers.");
       return;
     }
 
+    setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/auth/login", {
+      // NOTE: backend expects a "username" field — map accountNumber -> username
+      const payload = { username: form.accountNumber, password: form.password };
+
+      const res = await fetch("http://localhost:4000/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        alert("Login successful!");
-        console.log("JWT token:", data.token);
-        // TODO: Store token and redirect to dashboard
-      } else {
-        alert(data.error || "Login failed");
+      const data = await res.json().catch(() => ({}));
+
+      if (res.status === 429) {
+        // express-brute blocked this client
+        // server might include an error message or nextAllowed timestamp
+        const friendly = data.error || "Too many attempts. Please try again later.";
+        setErrorMsg(friendly);
+        setLoading(false);
+        return;
       }
+
+      if (!res.ok) {
+        setErrorMsg(data.error || "Login failed");
+        setLoading(false);
+        return;
+      }
+
+      // Success: store token and redirect
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+      }
+      alert("Login successful!");
+      navigate("/dashboard");
     } catch (err) {
       console.error("Login error:", err);
-      alert("Something went wrong");
+      setErrorMsg("Something went wrong — check your connection.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -48,6 +75,7 @@ export default function Login() {
     <div style={styles.container}>
       <div style={styles.card}>
         <h2 style={styles.title}>Login</h2>
+
         <form onSubmit={handleSubmit}>
           <div style={styles.inputGroup}>
             <label>Account Number</label>
@@ -75,9 +103,11 @@ export default function Login() {
             />
           </div>
 
-          <button type="submit" style={styles.button}>
-            Sign In
+          <button type="submit" style={styles.button} disabled={loading}>
+            {loading ? "Signing in…" : "Sign In"}
           </button>
+
+          {errorMsg && <div style={{ color: "#ffb3b3", marginTop: 12 }}>{errorMsg}</div>}
         </form>
       </div>
     </div>

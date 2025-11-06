@@ -1,13 +1,18 @@
+const fs = require('fs');
+const https = require('https');
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
+const dotenv = require('dotenv');
 const rateLimit = require('express-rate-limit');
+const authRoutes = require('./routes/auth');
+
 require('dotenv').config();
 
 const app = express();
 
-// ✅ Middleware
+// ✅ Security Middleware
 app.use(cors());
 app.use(express.json());
 app.use(helmet());
@@ -22,7 +27,7 @@ app.use((req, res, next) => {
 });
 
 // ✅ Routes
-app.use('/api/auth', require('./routes/auth'));
+app.use('/api/auth', authRoutes);
 
 // ✅ Fallback for unknown routes
 app.use((req, res) => {
@@ -40,8 +45,13 @@ mongoose.connect(process.env.MONGO_URI, {
     process.exit(1);
   });
 
-// ✅ Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+// ✅ HTTPS Server Setup (for dev/testing)
+const sslOptions = {
+  key: fs.readFileSync('./certs/key.pem'),
+  cert: fs.readFileSync('./certs/cert.pem')
+};
+
+const PORT = process.env.PORT || 443;
+https.createServer(sslOptions, app).listen(PORT, () => {
+  console.log(`🔒 HTTPS server running on port ${PORT}`);
 });

@@ -11,3 +11,10 @@ export const patterns = {
   //min 12 chars, at least one upper, one lower, one number, one special
   password: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{12,128}$/,
 };
+
+export function validateField(name, value) {
+  const rule = REGEX[name];
+  if (!rule) return { ok: true };
+  const ok = rule.test(value);
+  return { ok, message: ok ? null : `Invalid ${name}` };
+}

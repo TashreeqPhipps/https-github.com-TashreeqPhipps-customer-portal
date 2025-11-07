@@ -1,0 +1,9 @@
+version: 2.1
+
+orbs:
+  sonarqube: sonarsource/sonarcloud@2.0.0
+
+workflows:
+  scan:
+    jobs:
+      - sonarqube/scan

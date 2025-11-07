@@ -3,7 +3,15 @@ version: 2.1
 orbs:
   sonarcloud: sonarsource/sonarcloud@2.0.0
 
+jobs:
+  build:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - sonarcloud/scan
+
 workflows:
   scan:
     jobs:
-      - sonarcloud/scan
+      - build

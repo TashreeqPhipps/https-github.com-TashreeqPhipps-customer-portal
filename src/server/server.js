@@ -1,52 +1,61 @@
 import express from "express";
-import https from "https";
-import http from "http";
-import fs from "fs";
-import path from "path";
-import helmet from "helmet";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 
 dotenv.config();
+
 const app = express();
 
-//Security middleware
-app.use(helmet());
-app.use(cors({ origin: "https://localhost:3000" })); 
-app.use(express.json());
+// Environment variables
+const PORT = process.env.PORT || 5000;
+const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
 
-//HTTPS redirection middleware
-app.use((req, res, next) => {
-  if (!req.secure && process.env.NODE_ENV !== "development") {
-    return res.redirect(`https://${req.headers.host}${req.url}`);
+//Security middlewares
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(express.json({ limit: "10kb" }));
+app.use(cookieParser());
+app.use(cors({
+  origin: CLIENT_URL,
+  credentials: true,
+}));
+
+//Rate limiter
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: "Too many requests. Try again later."
+}));
+
+//Regex validation (example placeholders)
+const REGEX = {
+  username: /^[A-Za-z0-9._-]{4,50}$/,
+  password: /^(?=.{12,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*\W).+$/,
+};
+
+// Login route
+app.post("/pages/login", (req, res) => {
+  const { username, password } = req.body;
+
+  if (!REGEX.username.test(username) || !REGEX.password.test(password)) {
+    return res.status(400).json({ error: "Invalid credentials" });
   }
-  next();
 });
 
-//Example route
-app.get("/api/health", (req, res) => {
-  res.json({ status: "secure", message: "HTTPS server running" });
+// Get current session
+app.get("/api/me", (req, res) => {
+  const token = req.cookies.session_token;
+  if (!token) return res.status(401).json({ error: "Not authenticated" });
 });
 
-//Load SSL certificates
-const sslKey = fs.readFileSync(path.join("./certs/key.pem"));
-const sslCert = fs.readFileSync(path.join("./certs/cert.pem"));
-const credentials = { key: sslKey, cert: sslCert };
-
-//HTTPS Server
-const HTTPS_PORT = process.env.HTTPS_PORT || 3443;
-https.createServer(credentials, app).listen(HTTPS_PORT, () => {
-  console.log('HTTPS Server running on https://localhost:${HTTPS_PORT}');
+// Registration is disabled
+app.post("/api/register", (req, res) => {
+  return res.status(403).json({ error: "Registration is disabled" });
 });
 
-//Optional HTTP Server (for redirecting traffic)
-const HTTP_PORT = process.env.HTTP_PORT || 3080;
-http
-  .createServer((req, res) => {
-    const host = req.headers["host"];
-    res.writeHead(301, { Location: `https://${host}${req.url}` });
-    res.end();
-  })
-  .listen(HTTP_PORT, () => {
-    console.log('HTTP redirect server running on http://localhost:${HTTP_PORT}');
-  });
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
+});

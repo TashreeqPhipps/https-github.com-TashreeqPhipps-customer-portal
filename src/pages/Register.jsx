@@ -1,4 +1,6 @@
+// src/pages/Register.jsx
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -7,6 +9,9 @@ export default function Register() {
     accountNumber: "",
     password: "",
   });
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const navigate = useNavigate();
 
   // RegEx patterns
   const nameRegex = /^[A-Za-z\s]{2,}$/;
@@ -20,43 +25,64 @@ export default function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMsg("");
 
     // ✅ Validate inputs
     if (!nameRegex.test(form.fullName)) {
-      alert("Invalid name. Use letters and spaces only.");
+      setErrorMsg("Invalid name. Use letters and spaces only.");
       return;
     }
     if (!idRegex.test(form.idNumber)) {
-      alert("Invalid ID number. Must be exactly 13 digits.");
+      setErrorMsg("Invalid ID number. Must be exactly 13 digits.");
       return;
     }
     if (!accountRegex.test(form.accountNumber)) {
-      alert("Invalid account number. Must be exactly 10 digits.");
+      setErrorMsg("Invalid account number. Must be exactly 10 digits.");
       return;
     }
     if (!passwordRegex.test(form.password)) {
-      alert("Weak password. Must be at least 8 characters with letters and numbers.");
+      setErrorMsg("Weak password. Must be at least 8 characters with letters and numbers.");
       return;
     }
 
+    setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/auth/register", {
+      // Map accountNumber -> username to match server expectations
+      const payload = {
+        username: form.accountNumber,
+        password: form.password,
+        fullName: form.fullName,
+        idNumber: form.idNumber,
+      };
+
+      const res = await fetch("http://localhost:4000/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        alert("Registration successful!");
-        console.log("User registered:", data);
-        // TODO: Redirect to login or dashboard
-      } else {
-        alert(data.error || "Registration failed");
+      const data = await res.json().catch(() => ({}));
+
+      if (res.status === 429) {
+        setErrorMsg(data.error || "Too many registration attempts. Please try again later.");
+        setLoading(false);
+        return;
       }
+
+      if (!res.ok) {
+        setErrorMsg(data.error || "Registration failed");
+        setLoading(false);
+        return;
+      }
+
+      // success
+      alert("Registration successful! Please sign in.");
+      navigate("/login");
     } catch (err) {
       console.error("Registration error:", err);
-      alert("Something went wrong");
+      setErrorMsg("Something went wrong — check your connection.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -117,9 +143,11 @@ export default function Register() {
             />
           </div>
 
-          <button type="submit" style={styles.button}>
-            Sign Up
+          <button type="submit" style={styles.button} disabled={loading}>
+            {loading ? "Signing up…" : "Sign Up"}
           </button>
+
+          {errorMsg && <div style={{ color: "#ffb3b3", marginTop: 12 }}>{errorMsg}</div>}
         </form>
       </div>
     </div>

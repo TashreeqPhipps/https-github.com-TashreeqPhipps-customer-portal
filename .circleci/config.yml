@@ -3,15 +3,8 @@ version: 2.1
 orbs:
   sonarcloud: sonarsource/sonarcloud@2.0.0
 
-jobs:
-  build:
-    docker:
-      - image: cimg/base:stable
-    steps:
-      - checkout
-      - sonarcloud/scan
-
 workflows:
   scan:
     jobs:
-      - build
+      - sonarcloud/scan:
+          context: SonarCloud    # <-- name of a CircleCI Context that contains SONAR_TOKEN
